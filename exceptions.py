@@ -14,10 +14,6 @@ class MissingTokenException(Exception):
     pass
 
 
-class IncorrectResponseException(Exception):
-    pass
-
-
 class SendMessageFailException(Exception):
     pass
 

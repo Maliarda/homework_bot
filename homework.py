@@ -1,14 +1,13 @@
+import json
 import logging
-import time
 import os
 import sys
+import time
+from http import HTTPStatus
 
 import requests
 import telegram
-
-
 from dotenv import load_dotenv
-from http import HTTPStatus
 
 import exceptions
 
@@ -47,7 +46,7 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info("Сообщение отправлено в Telegram")
-    except exceptions.SendMessageFailException:
+    except telegram.TelegramError:
         logger.error("Произошел сбой при отправке сообщения в Telegram")
 
 
@@ -56,14 +55,19 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {"from_date": timestamp}
     try:
-        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    except exceptions.APINoResponseException:
-        logger.error("Сбой при запросе к эндпоинту")
-    if response.status_code != HTTPStatus.OK:
+        hw_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except requests.exceptions.RequestException as e:
+        message = f"Яндекс.Практикум вернул ошибку: {e}"
+        logging.error(message)
+    if hw_statuses.status_code != HTTPStatus.OK:
         message = "Сбой при запросе к API-сервису"
         logger.error(message)
         raise exceptions.APINoResponseException(message)
-    return response.json()
+    try:
+        return hw_statuses.json()
+    except json.JSONDecodeError:
+        message = "Ответ сервера не преобразовался в json"
+        logging.error(message)
 
 
 def check_response(response):
@@ -78,21 +82,28 @@ def check_response(response):
         message = "Ответ не в виде списка домашних работ"
         logger.error(message)
         raise exceptions.HwNotListException(message)
+    if len(homeworks_list) == 0:
+        message = "Домашних работ на проверке не обнаружено"
+        logger.error(message)
+        raise exceptions.CheckResponseException(message)
     return homeworks_list
 
 
 def parse_status(homework):
     """Извлекает из запроса статус домашней работы."""
-    homework_name = homework["homework_name"]
+    try:
+        homework_name = homework["homework_name"]
+    except KeyError as e:
+        message = f"Ошибка доступа по ключу homework_name: {e}"
+        logger.error(message)
     homework_status = homework.get("status")
-
+    if (homework_status is None) or (homework_status == ""):
+        logging.error(f"Статус работы некорректен: {homework_status}")
+    verdict = HOMEWORK_STATUSES[homework_status]
     if homework_status not in HOMEWORK_STATUSES:
         message = "Неизвестный статус домашней работы"
         logger.error(message)
         raise exceptions.UnknownHwStatusException(message)
-
-    verdict = HOMEWORK_STATUSES[homework_status]
-
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -117,14 +128,6 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             current_timestamp = int(time.time())
-        except exceptions.IncorrectResponseException as e:
-            if str(e) != previous_error:
-                previous_error = str(e)
-                send_message(bot, e)
-            logger.error(e)
-            time.sleep(RETRY_TIME)
-            continue
-        try:
             homeworks = check_response(response)
             hw_status = homeworks[0].get("status")
             if hw_status != previous_status:

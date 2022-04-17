@@ -9,7 +9,6 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-
 import exceptions
 
 logging.basicConfig(

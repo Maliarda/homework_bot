@@ -9,18 +9,26 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+
 import exceptions
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s, %(levelname)s, %(message)s",
-    handlers=[
-        logging.FileHandler("my_log.txt"),
-        logging.StreamHandler(sys.stdout),
-    ],
+    filename="my_log.txt",
 )
 
+
+handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 load_dotenv()
 
@@ -58,10 +66,10 @@ def get_api_answer(current_timestamp):
         hw_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
     except requests.exceptions.RequestException as e:
         message = f"Яндекс.Практикум вернул ошибку: {e}"
-        logging.error(message)
+        logging.error(message, exc_info=True)
     if hw_statuses.status_code != HTTPStatus.OK:
         message = "Сбой при запросе к API-сервису"
-        logger.error(message)
+        logger.error(message, exc_info=True)
         raise exceptions.APINoResponseException(message)
     try:
         return hw_statuses.json()

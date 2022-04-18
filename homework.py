@@ -65,7 +65,7 @@ def get_api_answer(current_timestamp):
         hw_statuses = requests.get(ENDPOINT, headers=HEADERS, params=params)
     except requests.exceptions.RequestException as e:
         message = f"Яндекс.Практикум вернул ошибку: {e}"
-        logging.error(message, exc_info=True)
+        logger.error(message, exc_info=True)
         raise requests.exceptions.RequestException(message)
     if hw_statuses.status_code != HTTPStatus.OK:
         message = "Сбой при запросе к API-сервису"
@@ -75,7 +75,7 @@ def get_api_answer(current_timestamp):
         return hw_statuses.json()
     except json.JSONDecodeError:
         message = "Ответ сервера не преобразовался в json"
-        logging.error(message)
+        logger.error(message)
         raise ValueError(message)
 
 
@@ -107,7 +107,7 @@ def parse_status(homework):
         logger.error(message)
     homework_status = homework.get("status")
     if (homework_status is None) or (homework_status == ""):
-        logging.error(f"Статус работы некорректен: {homework_status}")
+        logger.error(f"Статус работы некорректен: {homework_status}")
     verdict = HOMEWORK_STATUSES[homework_status]
     if homework_status not in HOMEWORK_STATUSES:
         message = "Неизвестный статус домашней работы"

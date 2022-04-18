@@ -66,6 +66,7 @@ def get_api_answer(current_timestamp):
     except requests.exceptions.RequestException as e:
         message = f"Яндекс.Практикум вернул ошибку: {e}"
         logging.error(message, exc_info=True)
+        raise requests.exceptions.RequestException(message)
     if hw_statuses.status_code != HTTPStatus.OK:
         message = "Сбой при запросе к API-сервису"
         logger.error(message, exc_info=True)
@@ -75,6 +76,7 @@ def get_api_answer(current_timestamp):
     except json.JSONDecodeError:
         message = "Ответ сервера не преобразовался в json"
         logging.error(message)
+        raise ValueError(message)
 
 
 def check_response(response):
@@ -144,7 +146,6 @@ def main():
                 logger.info(f"Отправлено сообщение: {message}")
             else:
                 logger.debug("Обновления статуса нет")
-
             time.sleep(RETRY_TIME)
 
         except Exception as error:

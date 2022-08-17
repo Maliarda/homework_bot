@@ -5,3 +5,7 @@
 - при обновлении статуса анализирует ответ API и отправляет студенту соответствующее уведомление в Telegram;
 - логирует свою работу и сообщаем студенту о важных проблемах сообщением в Telegram.
  
+## Технологии
+
+[Telegram Bot API](https://core.telegram.org/bots/api) - The Bot API is an HTTP-based interface created for developers keen on building bots for Telegram.
+[Python Telegram Bot](https://github.com/python-telegram-bot/python-telegram-bot) - This library provides a pure Python interface for the Telegram Bot API.
